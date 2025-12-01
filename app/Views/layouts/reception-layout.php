@@ -1,5 +1,5 @@
 <?php
-// app/Views/patient/layout.php
+// app/Views/reception/layout.php
 // Đường dẫn hiện tại để xác định trang active
 $current_page = basename($_SERVER['PHP_SELF']);
 ?>
@@ -9,7 +9,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Patient Portal - TechCare</title>
+    <title>Reception Portal - TechCare</title>
 
     <!-- Tabler Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
@@ -66,16 +66,17 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <nav class="p-5 space-y-2">
                 <!-- Tiêu đề Portal -->
                 <div class="mb-6 px-4 py-3 bg-primary/10 text-primary rounded-lg font-bold text-center border border-primary/20">
-                    Patient Portal
+                    Reception Portal
                 </div>
 
                 <!-- Menu Items -->
                 <?php
                 $menu = [
                     ['name' => 'Dashboard',        'file' => 'dashboard.php',        'icon' => 'ti ti-layout-dashboard'],
-                    ['name' => 'Appointment',         'file' => 'book_appointment.php',     'icon' => 'ti ti-calendar-event'],
-                    ['name' => 'Booking History',          'file' => 'booking_history.php',         'icon' => 'ti ti-message-circle'],
-                    ['name' => 'Profile',     'file' => 'profile.php',          'icon' => 'ti ti-user-circle'],
+                    ['name' => 'Appointment',         'file' => 'appointment.php',     'icon' => 'ti ti-calendar-event'],
+                    ['name' => 'Patient Management',          'file' => 'patient_management.php',         'icon' => 'ti ti-user-circle'],
+                    ['name' => 'Doctor Management',     'file' => 'doctor_management.php',          'icon' => 'ti ti-stethoscope'],
+                    ['name' => 'System Configuration',          'file' => 'configuration.php',         'icon' => 'ti ti-settings'],
                 ];
 
                 foreach ($menu as $item):
