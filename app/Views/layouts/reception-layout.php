@@ -38,6 +38,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
         h1,h2,h3,h4,.font-bold { font-family: 'Manrope', sans-serif; }
         body { font-family: 'Satoshi', sans-serif; }
     </style>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </head>
 <body class="bg-gray-50">
 
