@@ -1,64 +1,25 @@
 <?php
 // app/Views/patient/appointments.php
 ob_start();
+// session_start();
 
-// Dữ liệu mẫu (sau này thay bằng fetch từ DB)
-$appointments = [
-    [
-        'id' => '1',
-        'title' => 'Follow Up',
-        'doctor' => 'Dr. Trang Thanh Nghia',
-        'department' => 'Cardiology',
-        'date' => '10/10/25',
-        'time' => '14:30',
-        'status' => 'Upcoming'
-    ],
-    [
-        'id' => '2',
-        'title' => 'General Checkup',
-        'doctor' => 'Dr. Trang Thanh Nghia',
-        'department' => 'Cardiology',
-        'date' => '2/10/25',
-        'time' => '10:00',
-        'status' => 'Done'
-    ],
-    [
-        'id' => '3',
-        'title' => 'General Checkup',
-        'doctor' => 'Dr. Trang Thanh Nghia',
-        'department' => 'Cardiology',
-        'date' => '1/10/25',
-        'time' => '10:00',
-        'status' => 'Done'
-    ],
-    [
-        'id' => '4',
-        'title' => 'General Checkup',
-        'doctor' => 'Dr. Trang Thanh Nghia',
-        'department' => 'Cardiology',
-        'date' => '27/9/25',
-        'time' => '10:00',
-        'status' => 'Done'
-    ],
-    [
-        'id' => '5',
-        'title' => 'General Checkup',
-        'doctor' => 'Dr. Trang Thanh Nghia',
-        'department' => 'Cardiology',
-        'date' => '21/9/25',
-        'time' => '10:00',
-        'status' => 'Done'
-    ],
-    [
-        'id' => '6',
-        'title' => 'General Checkup',
-        'doctor' => 'Dr. Trang Thanh Nghia',
-        'department' => 'Cardiology',
-        'date' => '1/9/25',
-        'time' => '10:00',
-        'status' => 'Done'
-    ]
+// Giả sử bạn đã có PatientID từ session hoặc xác thực người dùng
+$data = [
+    "task"  => "getAppointments"
 ];
+$ch = curl_init('http://localhost/Dental-Clinic-Online-Booking-System/app/Controllers/AppointmentController.php');
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$respond = curl_exec($ch);
+if ($respond === false) {
+    $error = curl_error($ch);
+    curl_close($ch);
+    die("CURL Error: " . $error);
+} 
+curl_close($ch);
+$appointments = json_decode($respond, true); 
 ?>
 
 <div class="space-y-8">
@@ -108,7 +69,8 @@ $appointments = [
                         <div>
                             <h3 class="text-xl font-semibold">
                                 <?= htmlspecialchars($appt['title']) ?>
-                                <span class="<?= $appt['status'] === 'Upcoming' ? 'text-orange-500' : 'text-green-600' ?> font-bold">
+                                <span class="<?= $appt['status'] === 'Scheduled' ? 'text-orange-500' : 
+                                ($appt['status'] === 'Cancelled' ? 'text-red-500' : 'text-green-600')?> font-bold">
                                     • <?= $appt['status'] ?>
                                 </span>
                             </h3>
@@ -122,13 +84,13 @@ $appointments = [
                     </div>
 
                     <div class="flex items-center gap-3">
-                        <?php if ($appt['status'] === 'Upcoming'): ?>
+                        <?php if ($appt['status'] === 'Scheduled'): ?>
                             <a href="book-appointment.php?reschedule=<?= $appt['id'] ?>">
                                 <button class="px-6 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium">
                                     Reschedule
                                 </button>
                             </a>
-                            <button onclick="alert('Appointment <?= $appt['id'] ?> cancelled!')" 
+                            <button onclick="cancelAppointment(<?= $appt['id']?>,<?= $appt['schedule_id']?>)" 
                                     class="px-6 py-2.5 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition font-medium">
                                 Cancel
                             </button>
@@ -159,3 +121,28 @@ $appointments = [
 $content = ob_get_clean();
 include '../layouts/patient-layout.php'; // hoặc '../patient/layout.php'
 ?>
+<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<script>
+function cancelAppointment(id,schedule_id) {
+    if (!confirm("Cancel appointment " + id + "?")) return;
+    fetch("http://localhost/Dental-Clinic-Online-Booking-System/app/Controllers/AppointmentController.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: JSON.stringify({ 
+                    task: "CancelAppointment",
+                    Id: id,
+                    ScheduleID: schedule_id
+                })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            location.reload(); // refresh page
+            alert(data.message);
+        } else {
+            alert("Error: " + data.error);
+        }
+    })
+    .catch(err => alert("Network error: " + err));
+}
+</script>

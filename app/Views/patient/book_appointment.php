@@ -146,7 +146,7 @@ ob_start();
                 <div class="bg-gray-50 rounded-xl p-6 space-y-3 text-left">
                     <div>• <span x-text="selectedSlot.doctor"></span></div>
                     <div>• Department of <span x-text="selectedSlot.department"></span></div>
-                    <div>• <span x-text="selectedSlot.room"></span></div>
+                    <!-- <div>• <span x-text="selectedSlot.room"></span></div> -->
                     <div>• At <span x-text="selectedSlot.time"></span> on <span x-text="formatDate(selectedDayObj.date)"></span></div>
                 </div>
 
@@ -155,11 +155,11 @@ ob_start();
                             class="flex-1 py-3 border rounded-xl font-semibold hover:bg-gray-50">
                         Cancel
                     </button>
-                    <a href="appointments.php" class="flex-1">
-                        <button class="w-full py-3 bg-[#06b6d4] text-white rounded-xl font-semibold hover:bg-[#0891b2]">
+                    <!-- <a href="appointments.php" class="flex-1"> -->
+                        <button @click="submitSlot" class="w-full py-3 bg-[#06b6d4] text-white rounded-xl font-semibold hover:bg-[#0891b2]">
                             Confirm Booking
                         </button>
-                    </a>
+                    <!-- </a> -->
                 </div>
             </div>
         </div>
@@ -170,24 +170,27 @@ ob_start();
 <script>
 function bookingCalendar() {
     return {
-        currentDate: new Date(2025, 9, 1),
+        currentDate: new Date(2025, 11, 1),
         selectedDate: null,
         selectedDayObj: null,
         selectedSlot: null,
         showConfirm: false,
-        selectedDepartment: 'Cardiology',
+        selectedDepartment: 'Orthodontics',
+        departments: ["Orthodontics","Oral Surgery","Cosmetic Dentistry","Periodontics"],
+        timeSlots: [],
+        // selectedDepartment: 'Cardiology',
 
 
-        departments: ["Cardiology", "Orthopedics", "Dermatology", "Ophthalmology"],
-
-        timeSlots: [
-            { time: "11:00", doctor: "Dr. Trang Thanh Nghia", department: "Cardiology", room: "Room A1-102", available: true },
-            { time: "11:30", doctor: "Dr. Nguyen Duc Dung", department: "Orthopedics", room: "Room B1-102", available: true },
-            { time: "11:30", doctor: "Dr. Nguyen Thi Van Anh", department: "Dermatology", room: "Room JA-04", available: false },
-            { time: "11:30", doctor: "Dr. Tran Tien Minh", department: "Ophthalmology", room: "Room A1-102", available: true },
-            { time: "11:40", doctor: "Dr. Trang Thanh Nghia", department: "Cardiology", room: "Room A1-102", available: true },
-            { time: "11:50", doctor: "Dr. Trang Thanh Nghia", department: "Cardiology", room: "Room A1-102", available: true },
-        ],
+        // departments: ["Cardiology", "Orthopedics", "Dermatology", "Ophthalmology"],
+        
+        // timeSlots: [
+        //     { time: "11:00", doctor: "Dr. Trang Thanh Nghia", department: "Cardiology", room: "Room A1-102", available: true },
+        //     { time: "11:30", doctor: "Dr. Nguyen Duc Dung", department: "Orthopedics", room: "Room B1-102", available: true },
+        //     { time: "11:30", doctor: "Dr. Nguyen Thi Van Anh", department: "Dermatology", room: "Room JA-04", available: false },
+        //     { time: "11:30", doctor: "Dr. Tran Tien Minh", department: "Ophthalmology", room: "Room A1-102", available: true },
+        //     { time: "11:40", doctor: "Dr. Trang Thanh Nghia", department: "Cardiology", room: "Room A1-102", available: true },
+        //     { time: "11:50", doctor: "Dr. Trang Thanh Nghia", department: "Cardiology", room: "Room A1-102", available: true },
+        // ],
 
         init() {
             this.generateCalendar()
@@ -244,12 +247,50 @@ function bookingCalendar() {
             if (!day.isCurrentMonth) return
             this.selectedDayObj = day
             this.selectedDate = day.day
+            const formattedDate = day.date.toLocaleDateString('en-CA'); // YYYY-MM-DD
+            fetch('http://localhost/Dental-Clinic-Online-Booking-System/app/Controllers/AppointmentController.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    task: "getSlots",
+                    date: formattedDate })
+            })
+            .then(res => res.json())
+            .then(data => {
+                
+                this.timeSlots = data.slots;
+            })
+            .catch(err => console.error(err));
         },
 
         bookSlot(slot) {
             if (!slot.available || !this.selectedDate) return
             this.selectedSlot = slot
             this.showConfirm = false
+        },
+        submitSlot() {
+            fetch('http://localhost/Dental-Clinic-Online-Booking-System/app/Controllers/AppointmentController.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    task: "submitslot",
+                    slot: this.selectedSlot,
+                    date: this.selectedDayObj.date.toLocaleDateString('en-CA') })
+            })
+            .then(res => res.json())
+            .then(data => {
+                this.showConfirm = false;
+                window.location.href = './booking_history.php';
+            })
+            .catch(err => console.error(err));
+        },
+
+        getWeekNumber(date) {
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+            const dayNum = d.getUTCDay() || 7
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+            return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
         },
 
         formatDate(date) {
