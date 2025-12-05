@@ -221,9 +221,9 @@ ob_start();
                 <label class="block text-sm font-medium text-gray-700 mb-2">Expiry Date</label>
                 <input type="text" disabled value="31/12/2026" class="w-full px-4 py-3 bg-gray-100 rounded-lg">
             </div>
-            <div class="flex items-start gap-3 text-sm text-gray-600 bg-amber-50 p-4 rounded-lg border border-amber-200">
-                <i class="ti ti-alert-circle text-amber-600 text-xl mt-0.5"></i>
-                <p>To update insurance information, please contact the hospital administration.</p>
+            <div class="flex items-center gap-4 text-sm text-gray-600 bg-amber-50 p-4 rounded-lg border border-amber-200">
+                <i class="ti ti-alert-circle text-amber-600 text-2xl flex-shrink-0"></i>
+                <p class="leading-relaxed">To update insurance information, please contact the hospital administration.</p>
             </div>
         </div>
     </div>
