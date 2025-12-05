@@ -20,10 +20,34 @@ ob_start();
 
 <div class="space-y-8 max-w-7xl mx-auto p-6" x-data="bookingCalendar()" x-init="init()">
 
-    <!-- Header -->
-    <div>
-        <h2 class="text-4xl font-bold text-gray-900">Book Appointment</h2>
-        <p class="text-gray-600 mt-2">Select a date and available time slot</p>
+    <!-- HEADER + NÚT CONFIRM SIÊU ĐẸP, LUÔN HIỂN THỊ, TỰ DISABLE/ENABLE -->
+    <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-10">
+
+        <!-- Tiêu đề -->
+        <div>
+            <h2 class="text-4xl font-bold text-gray-900">Book Appointment</h2>
+            <p class="text-gray-600 mt-2">Select a date and available time slot</p>
+        </div>
+
+        <!-- NÚT CONFIRM - LUÔN HIỂN THỊ, TỰ ĐỘNG DISABLE/ENABLE -->
+        <div class="lg:min-w-[380px]">
+            <div @click.prevent="canBook && openConfirmModal()" 
+                :class="{ 'pointer-events-none': !canBook, 'cursor-not-allowed': !canBook }">
+                <button 
+                    :disabled="!canBook"
+                    :class="canBook 
+                        ? 'bg-[#06b6d4] hover:bg-[#0891b2] shadow-xl transform hover:scale-105 cursor-pointer' 
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-md'"
+                    class="w-full py-3 px-6 text-white font-bold text-2xl rounded-2xl transition-all duration-300 flex items-center justify-center gap-3">
+                    
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span>Confirm Booking</span>
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Main Content -->
@@ -62,102 +86,109 @@ ob_start();
             </div>
         </div>
 
-        <!-- Time Slots -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-            <h3 class="text-2xl font-bold mb-6">
-                Available Slots <span x-show="selectedDate" class="text-[#06b6d4]" x-text="' - ' + selectedDate + ' ' + currentMonthName.split(' ')[0]"></span>
-                <span x-show="!selectedDate" class="text-gray-500">— Please select a date</span>
-            </h3>
+        <!-- Time Slots + Nút Book ngay trên đầu -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold">
+                    Available Slots 
+                    <span x-show="selectedDate" class="text-[#06b6d4]" x-text="' - ' + selectedDate + ' ' + currentMonthName.split(' ')[0]"></span>
+                    <span x-show="!selectedDate" class="text-gray-500">— Please select a date</span>
+                </h3>
+            </div>
 
-            <div class="space-y-4 max-h-96 overflow-y-auto">
-                <div x-show="!selectedDate" class="text-center py-12 text-gray-500">
-                    <i class="ti ti-calendar-off text-6xl text-gray-300"></i>
-                    <p class="mt-4">Select a date to see available time slots</p>
+            <div x-show="!selectedDate" class="text-center py-20 text-gray-500 flex-1 flex items-center justify-center">
+                <div>
+                    <i class="ti ti-calendar-off text-6xl text-gray-300 mb-4"></i>
+                    <p class="text-lg">Please select a date</p>
                 </div>
+            </div>
 
-                <template x-show="selectedDate" x-for="slot in filteredSlots">
-                    <button
-                        @click="bookSlot(slot)"
-                        :disabled="!slot.available"
-                        :class="slot.available ? 'hover:border-[#06b6d4] hover:shadow-lg' : 'opacity-60 cursor-not-allowed'"
-                        class="w-full p-5 border-2 rounded-xl text-left transition-all flex justify-between items-center group"
-                    >
-                        <div>
-                            <div class="flex items-center gap-4 mb-2">
-                                <span class="text-2xl font-bold text-[#06b6d4]" x-text="slot.time"></span>
-                                <span :class="slot.available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'" 
-                                      class="px-3 py-1 rounded-full text-xs font-medium">
-                                    <span x-text="slot.available ? 'Available' : 'Booked'"></span>
-                                </span>
+
+            <div x-show="selectedDate" class="space-y-4 flex-1 overflow-y-auto max-h-96">
+                <template x-for="slot in filteredSlots" :key="slot.time">
+                    <div class="p-5 border-2 rounded-xl transition-all hover:border-[#06b6d4] hover:shadow-md cursor-pointer relative"
+                        :class="slot.available ? 
+                                (selectedSlot?.time === slot.time ? 'border-[#06b6d4] bg-cyan-50' : 'border-gray-200') : 
+                                'border-gray-300 bg-gray-50 opacity-75 cursor-not-allowed'">
+
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-4 mb-2">
+                                    <span class="text-2xl font-bold text-[#06b6d4]" x-text="slot.time"></span>
+
+                                    <!-- Hiển thị trạng thái slot -->
+                                    <span class="px-3 py-1 rounded-full text-xs font-medium"
+                                        :class="slot.bookedSlots === 0 ? 'bg-green-100 text-green-700' :
+                                                slot.bookedSlots === 1 ? 'bg-yellow-100 text-yellow-700' :
+                                                'bg-red-100 text-red-700'">
+                                        <span x-text="slot.bookedSlots === 0 ? '2 Slots Available' :
+                                                    slot.bookedSlots === 1 ? '1 Slot Left' :
+                                                    'Fully Booked'"></span>
+                                    </span>
+                                </div>
+                                <div class="font-semibold text-gray-800" x-text="slot.doctor"></div>
+                                <div class="text-sm text-gray-500" x-text="slot.room"></div>
                             </div>
-                            <div class="font-semibold" x-text="slot.doctor"></div>
-                            <div class="text-sm text-gray-500" x-text="slot.room"></div>
+
+                            <!-- Icon check khi chọn -->
+                            <i x-show="selectedSlot?.time === slot.time" 
+                            class="ti ti-check text-2xl text-[#06b6d4]"></i>
                         </div>
-                        <div x-show="slot.available" class="w-10 h-10 bg-[#06b6d4]/10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                            <i class="ti ti-chevron-right text-[#06b6d4]"></i>
+
+                        <!-- Nút book (chỉ hiện khi còn slot) -->
+                        <div x-show="slot.available && selectedSlot?.time !== slot.time" 
+                            class="mt-4 text-right">
+                            <button @click="selectedSlot = slot" 
+                                    class="text-sm font-medium text-[#06b6d4] hover:text-[#0891b2]">
+                                Select this time →
+                            </button>
                         </div>
-                    </button>
+                    </div>
                 </template>
             </div>
         </div>
     </div>
 
-    <!-- Fixed Bottom Booking Button -->
-    <div x-show="selectedDate && selectedSlot" 
-        x-transition:enter="transition ease-out duration-300"
-        x-transition:enter-start="opacity-0 transform translate-y-10"
-        x-transition:enter-end="opacity-100 transform translate-y-0"
-        class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-2xl z-40">
-        <div class="max-w-7xl mx-auto flex items-center justify-between">
-            <div>
-                <p class="text-sm text-gray-600">Your appointment</p>
-                <p class="font-semibold text-lg">
-                    <span x-text="selectedSlot.time"></span> 
-                    with <span x-text="selectedSlot.doctor"></span>
-                    <span class="text-gray-500">on</span> 
-                    <span x-text="formatDate(selectedDayObj.date)"></span>
-                </p>
-            </div>
-            <button @click="showConfirm = true" 
-                    class="px-8 py-4 bg-[#06b6d4] hover:bg-[#0891b2] text-white font-bold rounded-xl text-lg shadow-lg transition transform hover:scale-105">
-                Booking Appointment
-            </button>
-        </div>
-    </div>
 
-    <!-- Khoảng trống để không bị che -->
-    <div x-show="selectedDate && selectedSlot" class="h-32"></div>
-
-    <!-- Confirmation Modal - CHỈ HIỆN KHI CÓ selectedSlot -->
+    <!-- CONFIRMATION MODAL - HIỆN KHI BẤM CONFIRM BOOKING -->
     <template x-teleport="body">
-        <div x-show="showConfirm && selectedSlot" 
-            class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+        <div x-show="showConfirmModal" 
             x-transition
-            @click.self="showConfirm = false; selectedSlot = null">
-            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+            @keydown.escape.window="showConfirmModal = false"
+            class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+            
+            <div @click.stop class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-in fade-in zoom-in duration-200">
                 <div class="text-center mb-8">
                     <div class="w-20 h-20 bg-[#06b6d4]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="ti ti-check text-4xl text-[#06b6d4]"></i>
+                        <i class="ti ti-calendar-check text-4xl text-[#06b6d4]"></i>
                     </div>
-                    <h3 class="text-3xl font-bold">Confirmation</h3>
-                    <p class="text-gray-600 mt-2">Are you sure to book this appointment?</p>
+                    <h3 class="text-3xl font-bold text-gray-900">Confirm Appointment</h3>
+                    <p class="text-gray-600 mt-2">Please review your appointment details</p>
                 </div>
 
-                <div class="bg-gray-50 rounded-xl p-6 space-y-3 text-left">
-                    <div>• <span x-text="selectedSlot.doctor"></span></div>
-                    <div>• Department of <span x-text="selectedSlot.department"></span></div>
-                    <div>• <span x-text="selectedSlot.room"></span></div>
-                    <div>• At <span x-text="selectedSlot.time"></span> on <span x-text="formatDate(selectedDayObj.date)"></span></div>
+                <div class="bg-gray-50 rounded-xl p-6 space-y-4 text-left">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Doctor:</span>
+                        <span class="font-semibold" x-text="selectedSlot.doctor"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Time:</span>
+                        <span class="font-semibold" x-text="selectedSlot.time + ' on ' + formatDate(selectedDayObj.date)"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Room:</span>
+                        <span class="font-semibold" x-text="selectedSlot.room"></span>
+                    </div>
                 </div>
 
                 <div class="flex gap-4 mt-8">
-                    <button @click="showConfirm = false; selectedSlot = null" 
-                            class="flex-1 py-3 border rounded-xl font-semibold hover:bg-gray-50">
+                    <button @click="showConfirmModal = false" 
+                            class="flex-1 py-4 border-2 border-gray-300 rounded-xl font-semibold hover:bg-gray-50 transition">
                         Cancel
                     </button>
                     <a href="appointments.php" class="flex-1">
-                        <button class="w-full py-3 bg-[#06b6d4] text-white rounded-xl font-semibold hover:bg-[#0891b2]">
-                            Confirm Booking
+                        <button class="w-full py-4 bg-[#06b6d4] hover:bg-[#0891b2] text-white rounded-xl font-bold shadow-lg transition transform hover:scale-105">
+                            Yes, Confirm Booking
                         </button>
                     </a>
                 </div>
@@ -181,12 +212,38 @@ function bookingCalendar() {
         departments: ["Cardiology", "Orthopedics", "Dermatology", "Ophthalmology"],
 
         timeSlots: [
-            { time: "11:00", doctor: "Dr. Trang Thanh Nghia", department: "Cardiology", room: "Room A1-102", available: true },
-            { time: "11:30", doctor: "Dr. Nguyen Duc Dung", department: "Orthopedics", room: "Room B1-102", available: true },
-            { time: "11:30", doctor: "Dr. Nguyen Thi Van Anh", department: "Dermatology", room: "Room JA-04", available: false },
-            { time: "11:30", doctor: "Dr. Tran Tien Minh", department: "Ophthalmology", room: "Room A1-102", available: true },
-            { time: "11:40", doctor: "Dr. Trang Thanh Nghia", department: "Cardiology", room: "Room A1-102", available: true },
-            { time: "11:50", doctor: "Dr. Trang Thanh Nghia", department: "Cardiology", room: "Room A1-102", available: true },
+            {
+                time: "11:00",
+                doctor: "Dr. Trang Thanh Nghia",
+                department: "Cardiology",
+                room: "Room A1-102",
+                maxSlots: 2,
+                bookedSlots: 0   // 0 = còn 2 chỗ, 1 = còn 1 chỗ, 2 = hết chỗ
+            },
+            {
+                time: "12:00",
+                doctor: "Dr. Trang Thanh Nghia",
+                department: "Cardiology",
+                room: "Room A1-102",
+                maxSlots: 2,
+                bookedSlots: 1   // ví dụ đã có 1 người đặt
+            },
+            {
+                time: "14:00",
+                doctor: "Dr. Nguyen Duc Dung",
+                department: "Orthopedics",
+                room: "Room B1-102",
+                maxSlots: 2,
+                bookedSlots: 2   // đã full
+            },
+            {
+                time: "15:00",
+                doctor: "Dr. Trang Thanh Nghia",
+                department: "Cardiology",
+                room: "Room A1-102",
+                maxSlots: 2,
+                bookedSlots: 0
+            },
         ],
 
         init() {
@@ -194,7 +251,7 @@ function bookingCalendar() {
         },
 
         get currentMonthName() {
-            return this.currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })
+            return this.currentDate.toLocaleString('en-US', { month: 'long', year: 'numeric' })
         },
 
         get calendarDays() {
@@ -229,7 +286,12 @@ function bookingCalendar() {
         },
 
         get filteredSlots() {
-            return this.timeSlots.filter(s => s.department === this.selectedDepartment)
+            return this.timeSlots
+                .filter(s => s.department === this.selectedDepartment)
+                .map(slot => ({
+                    ...slot,
+                    available: slot.bookedSlots < slot.maxSlots
+                }))
         },
 
         prevMonth() { this.currentDate = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() - 1); this.generateCalendar() },
@@ -254,9 +316,17 @@ function bookingCalendar() {
 
         formatDate(date) {
             return date ? date.toLocaleDateString('en-GB') : ''
-        }
+        },
 
+        get canBook() {
+            return this.selectedDate && this.selectedSlot && this.selectedSlot.bookedSlots < this.selectedSlot.maxSlots
+        },
 
+        showConfirmModal: false,
+
+        openConfirmModal() {
+            this.showConfirmModal = true
+        },
     }
 }
 </script>
