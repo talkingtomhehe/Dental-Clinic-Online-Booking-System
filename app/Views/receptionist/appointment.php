@@ -24,8 +24,8 @@ ob_start();
     <!-- HEADER -->
     <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-10">
         <div>
-            <h2 class="text-4xl font-bold text-gray-900">Book Appointment</h2>
-            <p class="text-gray-600 mt-2">Select a date and available time slot</p>
+            <h2 class="text-4xl font-bold text-gray-900">Appointment</h2>
+            <p class="text-gray-600 mt-2">Manage Appointment</p>
         </div>
     </div>
 
