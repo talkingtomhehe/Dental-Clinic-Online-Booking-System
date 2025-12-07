@@ -1,5 +1,6 @@
 <?php
-// app/Views/patient/appointments.php
+// app/Views/patient/booking_history.php
+require_once dirname(__DIR__, 3) . '/config/config.php';
 ob_start();
 
 // Dữ liệu mẫu (sau này thay bằng fetch từ DB)
@@ -69,7 +70,7 @@ $appointments = [
             <h2 class="text-4xl font-bold text-gray-900">Appointments</h2>
             <p class="text-gray-600 mt-2">Manage your hospital visits</p>
         </div>
-        <a href="book-appointment.php">
+        <a href="<?= BASE_URL ?>/public/patient/book-appointment">
             <button class="bg-[#06b6d4] text-white font-semibold px-8 py-2 rounded-xl text-lg shadow-lg hover:bg-[#0891b2] transition transform hover:-translate-y-0.5 flex items-center gap-3">
                 <span class="text-3xl">+</span>
                 Book Appointment
@@ -123,7 +124,7 @@ $appointments = [
 
                     <div class="flex items-center gap-3">
                         <?php if ($appt['status'] === 'Upcoming'): ?>
-                            <a href="book-appointment.php?reschedule=<?= $appt['id'] ?>">
+                            <a href="<?= BASE_URL ?>/public/patient/book-appointment?reschedule=<?= urlencode($appt['id']) ?>">
                                 <button class="px-6 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium">
                                     Reschedule
                                 </button>
@@ -133,7 +134,7 @@ $appointments = [
                                 Cancel
                             </button>
                         <?php else: ?>
-                            <a href="feedback.php?appt=<?= $appt['id'] ?>">
+                            <a href="#">
                                 <button class="px-8 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium">
                                     Feedback
                                 </button>
@@ -157,5 +158,5 @@ $appointments = [
 
 <?php
 $content = ob_get_clean();
-include '../layouts/patient-layout.php'; // hoặc '../patient/layout.php'
+require_once __DIR__ . '/../layouts/patient-layout.php';
 ?>

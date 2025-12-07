@@ -1,5 +1,6 @@
 <?php
 // app/Views/patient/dashboard.php
+require_once dirname(__DIR__, 3) . '/config/config.php';
 ob_start();
 ?>
 
@@ -7,7 +8,7 @@ ob_start();
 
     <!-- Welcome -->
     <div>
-        <h2 class="text-4xl font-bold text-gray-900">Welcome, Nguyen Van A!</h2>
+        <h2 class="text-4xl font-bold text-gray-900">Welcome, <?= htmlspecialchars($currentUser['name'] ?? 'Patient') ?>!</h2>
         <p class="text-gray-600 mt-2">Here's your overview dashboard</p>
     </div>
 
@@ -17,7 +18,7 @@ ob_start();
         <div class="p-6" id="quick-actions">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <!-- Lịch hẹn sắp tới -->
-                <a href="appointments.php" class="block bg-gray-50 rounded-xl p-6 hover:shadow-lg hover:-translate-y-1 transition-all border border-gray-200">
+                <a href="<?= BASE_URL ?>/public/patient/booking-history" class="block bg-gray-50 rounded-xl p-6 hover:shadow-lg hover:-translate-y-1 transition-all border border-gray-200">
                     <div class="flex items-center justify-between mb-4">
                         <span class="text-sm font-medium text-gray-700">Upcoming appointment</span>
                         <i class="ti ti-calendar-event text-gray-500 text-lg"></i>
@@ -27,7 +28,7 @@ ob_start();
                 </a>
 
                 <!-- Chẩn đoán hiện tại -->
-                <a href="records.php" class="block bg-gray-50 rounded-xl p-6 hover:shadow-lg hover:-translate-y-1 transition-all border border-gray-200">
+                <a href="#" class="block bg-gray-50 rounded-xl p-6 hover:shadow-lg hover:-translate-y-1 transition-all border border-gray-200">
                     <div class="flex items-center justify-between mb-4">
                         <span class="text-sm font-medium text-gray-700">Current Diagnosis</span>
                         <i class="ti ti-activity text-gray-500 text-lg"></i>
@@ -37,7 +38,7 @@ ob_start();
                 </a>
 
                 <!-- Phục hồi sau -->
-                <a href="records.php" class="block bg-gray-50 rounded-xl p-6 hover:shadow-lg hover:-translate-y-1 transition-all border border-gray-200">
+                <a href="#" class="block bg-gray-50 rounded-xl p-6 hover:shadow-lg hover:-translate-y-1 transition-all border border-gray-200">
                     <div class="flex items-center justify-between mb-4">
                         <span class="text-sm font-medium text-gray-700">Recovery prediction</span>
                         <i class="ti ti-heart text-gray-500 text-lg"></i>
@@ -47,7 +48,7 @@ ob_start();
                 </a>
 
                 <!-- AI Assistant -->
-                <a href="chatbot.php" class="block bg-gray-50 rounded-xl p-6 hover:shadow-lg hover:-translate-y-1 transition-all border border-gray-200">
+                <a href="#" class="block bg-gray-50 rounded-xl p-6 hover:shadow-lg hover:-translate-y-1 transition-all border border-gray-200">
                     <div class="flex items-center justify-between mb-4">
                         <span class="text-sm font-medium text-gray-700">AI Chatbot</span>
                         <i class="ti ti-robot text-gray-500 text-lg"></i>
@@ -101,7 +102,7 @@ ob_start();
                 <button class="px-6 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition">Feedback</button>
             </div>
 
-            <a href="appointments.php" class="block w-full mt-4">
+            <a href="<?= BASE_URL ?>/public/patient/booking-history" class="block w-full mt-4">
                 <button class="w-full py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition font-medium">
                     View all appointments →
                 </button>
@@ -193,5 +194,5 @@ ob_start();
 
 <?php
 $content = ob_get_clean();
-include '../layouts/patient-layout.php'; // hoặc include '../patient/layout.php'
+require_once __DIR__ . '/../layouts/patient-layout.php';
 ?>

@@ -1,7 +1,33 @@
 <?php
 // app/Views/patient/layout.php
-// Đường dẫn hiện tại để xác định trang active
-$current_page = basename($_SERVER['PHP_SELF']);
+require_once __DIR__ . '/../../../config/config.php';
+require_once __DIR__ . '/../../Controllers/AuthenticationController.php';
+
+// Require authentication and patient role
+AuthenticationController::requireRole('Patient');
+
+// Get current user session data
+$auth = new AuthenticationController();
+$currentUser = $auth->getCurrentUser();
+
+// Determine current route relative to public base
+$basePath = rtrim(parse_url(BASE_URL, PHP_URL_PATH) ?? '', '/');
+$publicPath = $basePath . '/public';
+$requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$currentRoute = '/' . ltrim(str_replace($publicPath, '', $requestPath), '/');
+$currentRoute = rtrim($currentRoute, '/');
+if ($currentRoute === '') {
+    $currentRoute = '/';
+}
+if ($currentRoute === '/patient') {
+    $currentRoute = '/patient/dashboard';
+}
+if ($currentRoute === '/patient/book_appointment') {
+    $currentRoute = '/patient/book-appointment';
+}
+if ($currentRoute === '/patient/booking_history') {
+    $currentRoute = '/patient/booking-history';
+}
 ?>
 
 <!DOCTYPE html>
@@ -53,10 +79,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </div>
 
             <!-- Logout Button -->
-            <a href="http://localhost/Dental-Clinic-Online-Booking-System/public/index.php" class="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium">
+            <button onclick="handleLogout()" class="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium">
                 <i class="ti ti-logout"></i>
                 Sign out
-            </a>
+            </button>
         </div>
     </header>
 
@@ -72,16 +98,16 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <!-- Menu Items -->
                 <?php
                 $menu = [
-                    ['name' => 'Dashboard',        'file' => 'dashboard.php',        'icon' => 'ti ti-layout-dashboard'],
-                    ['name' => 'Appointment',         'file' => 'book_appointment.php',     'icon' => 'ti ti-calendar-event'],
-                    ['name' => 'Booking History',          'file' => 'booking_history.php',         'icon' => 'ti ti-message-circle'],
-                    ['name' => 'Profile',     'file' => 'profile.php',          'icon' => 'ti ti-user-circle'],
+                    ['name' => 'Dashboard', 'path' => '/patient/dashboard', 'icon' => 'ti ti-layout-dashboard'],
+                    ['name' => 'Appointment', 'path' => '/patient/book-appointment', 'icon' => 'ti ti-calendar-event'],
+                    ['name' => 'Booking History', 'path' => '/patient/booking-history', 'icon' => 'ti ti-message-circle'],
+                    ['name' => 'Profile', 'path' => '/patient/profile', 'icon' => 'ti ti-user-circle'],
                 ];
 
                 foreach ($menu as $item):
-                    $isActive = ($current_page === $item['file']);
+                    $isActive = ($currentRoute === rtrim($item['path'], '/'));
                 ?>
-                    <a href="<?= $item['file'] ?>"
+                    <a href="<?= BASE_URL ?>/public<?= $item['path'] ?>"
                        class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition <?= $isActive ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-200' ?>">
                         <i class="<?= $item['icon'] ?> text-lg"></i>
                         <?= $item['name'] ?>
@@ -94,9 +120,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
             <div class="grid grid-cols-4 gap-1 p-2">
                 <?php foreach (array_slice($menu, 0, 4) as $item):
-                    $isActive = ($current_page === $item['file']);
+                    $isActive = ($currentRoute === rtrim($item['path'], '/'));
                 ?>
-                    <a href="<?= $item['file'] ?>" class="flex flex-col items-center py-2 <?= $isActive ? 'text-primary' : 'text-gray-500' ?>">
+                    <a href="<?= BASE_URL ?>/public<?= $item['path'] ?>" class="flex flex-col items-center py-2 <?= $isActive ? 'text-primary' : 'text-gray-500' ?>">
                         <i class="<?= $item['icon'] ?> text-xl"></i>
                         <span class="text-xs mt-1"><?= explode(' ', $item['name'])[0] ?></span>
                     </a>
@@ -113,6 +139,35 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </div>
         </main>
     </div>
+
+    <script>
+        async function handleLogout() {
+            if (!confirm('Are you sure you want to logout?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('<?= BASE_URL ?>/public/api/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    window.location.href = data.redirect;
+                } else {
+                    alert('Logout failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                // Even if there's an error, redirect to login
+                window.location.href = '<?= BASE_URL ?>/public/auth/login';
+            }
+        }
+    </script>
 
 </body>
 </html>

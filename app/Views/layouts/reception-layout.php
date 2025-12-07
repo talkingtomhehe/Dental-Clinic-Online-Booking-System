@@ -1,5 +1,15 @@
 <?php
 // app/Views/reception/layout.php
+require_once __DIR__ . '/../../../config/config.php';
+require_once __DIR__ . '/../../Controllers/AuthenticationController.php';
+
+// Require authentication and receptionist role
+AuthenticationController::requireRole('Receptionist');
+
+// Get current user session data
+$auth = new AuthenticationController();
+$currentUser = $auth->getCurrentUser();
+
 // Đường dẫn hiện tại để xác định trang active
 $current_page = basename($_SERVER['PHP_SELF']);
 ?>
@@ -54,10 +64,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </div>
 
             <!-- Logout Button -->
-            <a href="http://localhost/Dental-Clinic-Online-Booking-System/public/index.php" class="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium">
+            <button onclick="handleLogout()" class="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium">
                 <i class="ti ti-logout"></i>
                 Sign out
-            </a>
+            </button>
         </div>
     </header>
 
@@ -115,6 +125,35 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </div>
         </main>
     </div>
+
+    <script>
+        async function handleLogout() {
+            if (!confirm('Are you sure you want to logout?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost/dental/public/api/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    window.location.href = data.redirect;
+                } else {
+                    alert('Logout failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                // Even if there's an error, redirect to login
+                window.location.href = 'http://localhost/dental/app/Views/auth/login.php';
+            }
+        }
+    </script>
 
 </body>
 </html>

@@ -1,5 +1,6 @@
 <?php
 // app/Views/patient/profile.php
+require_once dirname(__DIR__, 3) . '/config/config.php';
 ob_start();
 ?>
 
@@ -272,5 +273,5 @@ function profileForm() {
 
 <?php
 $content = ob_get_clean();
-include '../layouts/patient-layout.php'; // hoặc '../patient/layout.php'
+require_once __DIR__ . '/../layouts/patient-layout.php';
 ?>

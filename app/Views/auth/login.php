@@ -1,5 +1,5 @@
 <?php
-// app/Views/auth/login.php
+require_once dirname(__DIR__, 3) . '/config/config.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -92,15 +92,15 @@
 
                 <!-- Register Link -->
                 <div class="mt-6 text-center text-sm">
-                    <span class="text-gray-600">Don’t have account?</span>
-                    <a href="register.php" class="font-medium text-primary hover:underline">Register as Patient</a>
+                    <span class="text-gray-600">Don't have account?</span>
+                    <a href="<?= BASE_URL ?>/public/auth/register" class="font-medium text-primary hover:underline">Register as Patient</a>
                 </div>
             </div>
         </div>
 
         <!-- Back to Home -->
         <div class="mt-8 text-center">
-            <a href="../index.php" class="text-sm text-gray-600 hover:text-gray-900 flex items-center justify-center gap-1">
+            <a href="<?= BASE_URL ?>/public" class="text-sm text-gray-600 hover:text-gray-900 flex items-center justify-center gap-1">
                 <i class="ti ti-arrow-left"></i>
                 Back to main page
             </a>
@@ -108,21 +108,54 @@
     </div>
 
     <script>
-        function handleLogin(event) {
-            event.preventDefault(); // ngăn submit form thật
+        async function handleLogin(event) {
+            event.preventDefault();
 
-            // Lấy role đã chọn
-            const role = document.querySelector('input[name="role"]:checked').value;
+            const form = event.target;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const username = form.querySelector('input[name="username"]').value;
+            const password = form.querySelector('input[name="password"]').value;
+            const role = form.querySelector('input[name="role"]:checked').value;
 
-            // Điều hướng theo role (bạn có thể sửa link tùy ý)
-            if (role === "patient") {
-                window.location.href = "http://localhost/Dental-Clinic-Online-Booking-System/app/Views/patient/dashboard.php";
-            } else if (role === "reception") {
-                window.location.href = "http://localhost/Dental-Clinic-Online-Booking-System/app/Views/receptionist/dashboard.php";
+            // Disable submit button
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Signing in...';
+
+            try {
+                const response = await fetch('<?= BASE_URL ?>/public/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password,
+                        role: role
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Show success message
+                    alert('Login successful! Redirecting...');
+                    // Redirect to dashboard
+                    window.location.href = data.redirect;
+                } else {
+                    // Show error message
+                    alert(data.message || 'Login failed. Please check your credentials.');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Sign in';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('An error occurred during login. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Sign in';
             }
         }
 
-        // Toggle mật khẩu (giữ nguyên như cũ)
+        // Toggle password visibility
         function togglePassword() {
             const password = document.getElementById('password');
             const eyeOpen = document.getElementById('eye-open');

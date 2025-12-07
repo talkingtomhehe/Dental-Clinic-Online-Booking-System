@@ -1,3 +1,82 @@
+<?php
+// public/index.php - Router and Landing Page
+
+require_once '../config/config.php';
+
+// Simple routing
+$request = $_SERVER['REQUEST_URI'];
+$base_path = '/dental/public';
+
+// Remove base path and query string
+$route = str_replace($base_path, '', parse_url($request, PHP_URL_PATH));
+
+// Handle API routes
+if (strpos($route, '/api/') === 0) {
+    header('Content-Type: application/json');
+    
+    switch ($route) {
+        case '/api/login':
+            require_once '../app/Controllers/AuthenticationController.php';
+            $controller = new AuthenticationController();
+            $controller->login();
+            exit;
+            
+        case '/api/logout':
+            require_once '../app/Controllers/AuthenticationController.php';
+            $controller = new AuthenticationController();
+            $controller->logout();
+            exit;
+            
+        case '/api/appointments':
+            require_once '../app/Controllers/AppointmentController.php';
+            $controller = new AppointmentController();
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $controller->bookAppointment();
+            } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
+                $controller->getAppointments();
+            }
+            exit;
+            
+        case '/api/appointments/cancel':
+            require_once '../app/Controllers/AppointmentController.php';
+            $controller = new AppointmentController();
+            $controller->cancelAppointment();
+            exit;
+            
+        default:
+            http_response_code(404);
+            echo json_encode(['error' => 'API endpoint not found']);
+            exit;
+    }
+}
+
+$normalizedRoute = rtrim($route, '/');
+if ($normalizedRoute === '') {
+    $normalizedRoute = '/';
+}
+
+$viewRoutes = [
+    '/auth/login' => '../app/Views/auth/login.php',
+    '/login' => '../app/Views/auth/login.php',
+    '/auth/register' => '../app/Views/auth/register.php',
+    '/register' => '../app/Views/auth/register.php',
+    '/patient' => '../app/Views/patient/dashboard.php',
+    '/patient/dashboard' => '../app/Views/patient/dashboard.php',
+    '/patient/book-appointment' => '../app/Views/patient/book_appointment.php',
+    '/patient/book_appointment' => '../app/Views/patient/book_appointment.php',
+    '/patient/booking-history' => '../app/Views/patient/booking_history.php',
+    '/patient/booking_history' => '../app/Views/patient/booking_history.php',
+    '/patient/profile' => '../app/Views/patient/profile.php',
+];
+
+if (isset($viewRoutes[$normalizedRoute])) {
+    require_once $viewRoutes[$normalizedRoute];
+    exit;
+}
+
+$publicBaseUrl = BASE_URL . '/public';
+// Landing page below
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -163,8 +242,8 @@
     <header>
         <div class="logo"><i class="ti ti-wave-saw-tool"></i> TechCare</div>
         <div class="nav-right">
-            <a href="http://localhost/Dental-Clinic-Online-Booking-System/app/Views/auth/login.php">Sign In</a>
-            <a href="register.php" class="btn-register">Register</a>
+            <a href="<?= $publicBaseUrl ?>/auth/login">Sign In</a>
+            <a href="<?= $publicBaseUrl ?>/auth/register" class="btn-register">Register</a>
         </div>
     </header>
 
@@ -172,7 +251,7 @@
     <section class="hero">
         <h1>Transform Healthcare<br>with <span>Smart</span><br>Hospital Management</h1>
         <p>Streamline patient flow, optimize appointments, and enhance care quality with intelligent automation.</p>
-        <a href="#" class="btn-primary">Register for free →</a>
+        <a href="<?= $publicBaseUrl ?>/auth/register" class="btn-primary">Register for free →</a>
     </section>
 
     <!-- Features -->

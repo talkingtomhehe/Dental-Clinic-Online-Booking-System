@@ -1,5 +1,6 @@
 <?php
-// app/Views/patient/book-appointment.php
+// app/Views/patient/book_appointment.php
+require_once dirname(__DIR__, 3) . '/config/config.php';
 ob_start();
 ?>
 <!DOCTYPE html>
@@ -186,7 +187,7 @@ ob_start();
                             class="flex-1 py-4 border-2 border-gray-300 rounded-xl font-semibold hover:bg-gray-50 transition">
                         Cancel
                     </button>
-                    <a href="appointments.php" class="flex-1">
+                    <a href="<?= BASE_URL ?>/public/patient/booking-history" class="flex-1">
                         <button class="w-full py-4 bg-[#06b6d4] hover:bg-[#0891b2] text-white rounded-xl font-bold shadow-lg transition transform hover:scale-105">
                             Yes, Confirm Booking
                         </button>
@@ -333,5 +334,5 @@ function bookingCalendar() {
 
 <?php
 $content = ob_get_clean();
-include '../layouts/patient-layout.php';
+require_once __DIR__ . '/../layouts/patient-layout.php';
 ?>
