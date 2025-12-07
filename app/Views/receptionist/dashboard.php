@@ -5,7 +5,7 @@ ob_start();
 <div class="space-y-8">
     <!-- Header -->
     <div>
-        <h2 class="text-3xl font-bold text-gray-900">Reception Dashboard</h2>
+        <h2 class="text-3xl font-bold text-gray-900">Welcome, <?= htmlspecialchars($currentUser['name'] ?? 'Receptionist') ?>!</h2>
         <p class="text-gray-600 mt-2">System overview and management</p>
     </div>
 
