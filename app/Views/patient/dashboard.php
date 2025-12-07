@@ -1,6 +1,47 @@
 <?php
 // app/Views/patient/dashboard.php
 require_once dirname(__DIR__, 3) . '/config/config.php';
+require_once dirname(__DIR__, 2) . '/Controllers/AuthenticationController.php';
+require_once dirname(__DIR__, 2) . '/Models/Appointment.php';
+
+AuthenticationController::requireRole('Patient');
+
+$auth = new AuthenticationController();
+$currentUser = $auth->getCurrentUser();
+
+$appointmentRepository = new Appointment();
+$nextAppointment = null;
+$nextAppointmentDateTime = null;
+
+if ($currentUser && !empty($currentUser['patient_id'])) {
+    $patientAppointments = $appointmentRepository->getAppointmentsForPatient((int) $currentUser['patient_id']);
+    $now = new DateTime();
+
+    foreach ($patientAppointments as $appointment) {
+        if (($appointment['status'] ?? '') !== 'Scheduled') {
+            continue;
+        }
+
+        $appointmentDateTime = DateTime::createFromFormat('Y-m-d H:i', ($appointment['date'] ?? '') . ' ' . ($appointment['time'] ?? ''));
+        if (!$appointmentDateTime) {
+            continue;
+        }
+
+        if ($appointmentDateTime < $now) {
+            continue;
+        }
+
+        if ($nextAppointmentDateTime === null || $appointmentDateTime < $nextAppointmentDateTime) {
+            $nextAppointment = $appointment;
+            $nextAppointmentDateTime = $appointmentDateTime;
+        }
+    }
+}
+
+$nextAppointmentTime = $nextAppointmentDateTime ? $nextAppointmentDateTime->format('H:i') : null;
+$nextAppointmentDate = $nextAppointmentDateTime ? $nextAppointmentDateTime->format('d/m/Y') : null;
+$nextAppointmentDoctor = $nextAppointment['doctor'] ?? null;
+
 ob_start();
 ?>
 
@@ -23,8 +64,17 @@ ob_start();
                         <span class="text-sm font-medium text-gray-700">Upcoming appointment</span>
                         <i class="ti ti-calendar-event text-gray-500 text-lg"></i>
                     </div>
-                    <div class="text-3xl font-bold text-gray-900">10:00 AM</div>
-                    <p class="text-sm text-gray-600 mt-1">30/11/2025 - BS. Sarah Johnson</p>
+                    <div class="text-3xl font-bold text-gray-900"><?= $nextAppointmentTime ? htmlspecialchars($nextAppointmentTime) : '—' ?></div>
+                    <p class="text-sm text-gray-600 mt-1">
+                        <?php if ($nextAppointmentDate): ?>
+                            <?= htmlspecialchars($nextAppointmentDate) ?>
+                            <?php if ($nextAppointmentDoctor): ?>
+                                &nbsp;–&nbsp;<?= htmlspecialchars($nextAppointmentDoctor) ?>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            No scheduled appointment.
+                        <?php endif; ?>
+                    </p>
                 </a>
 
                 <!-- Chẩn đoán hiện tại -->

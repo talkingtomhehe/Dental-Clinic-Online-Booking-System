@@ -36,6 +36,12 @@ if (strpos($route, '/api/') === 0) {
                 $controller->getAppointments();
             }
             exit;
+
+        case '/api/appointments/slots':
+            require_once '../app/Controllers/AppointmentController.php';
+            $controller = new AppointmentController();
+            $controller->getAvailableSlots();
+            exit;
             
         case '/api/appointments/cancel':
             require_once '../app/Controllers/AppointmentController.php';

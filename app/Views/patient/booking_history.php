@@ -1,64 +1,26 @@
 <?php
 // app/Views/patient/booking_history.php
 require_once dirname(__DIR__, 3) . '/config/config.php';
+require_once dirname(__DIR__, 2) . '/Controllers/AuthenticationController.php';
+require_once dirname(__DIR__, 2) . '/Models/Appointment.php';
+
+AuthenticationController::requireRole('Patient');
+
+$auth = new AuthenticationController();
+$currentUser = $auth->getCurrentUser();
+
+$appointments = [];
+if ($currentUser && !empty($currentUser['patient_id'])) {
+    $appointmentRepository = new Appointment();
+    $appointments = $appointmentRepository->getAppointmentsForPatient((int) $currentUser['patient_id']);
+}
+
 ob_start();
 
-// Dữ liệu mẫu (sau này thay bằng fetch từ DB)
-$appointments = [
-    [
-        'id' => '1',
-        'title' => 'Follow Up',
-        'doctor' => 'Dr. Trang Thanh Nghia',
-        'department' => 'Cardiology',
-        'date' => '10/10/25',
-        'time' => '14:30',
-        'status' => 'Upcoming'
-    ],
-    [
-        'id' => '2',
-        'title' => 'General Checkup',
-        'doctor' => 'Dr. Trang Thanh Nghia',
-        'department' => 'Cardiology',
-        'date' => '2/10/25',
-        'time' => '10:00',
-        'status' => 'Done'
-    ],
-    [
-        'id' => '3',
-        'title' => 'General Checkup',
-        'doctor' => 'Dr. Trang Thanh Nghia',
-        'department' => 'Cardiology',
-        'date' => '1/10/25',
-        'time' => '10:00',
-        'status' => 'Done'
-    ],
-    [
-        'id' => '4',
-        'title' => 'General Checkup',
-        'doctor' => 'Dr. Trang Thanh Nghia',
-        'department' => 'Cardiology',
-        'date' => '27/9/25',
-        'time' => '10:00',
-        'status' => 'Done'
-    ],
-    [
-        'id' => '5',
-        'title' => 'General Checkup',
-        'doctor' => 'Dr. Trang Thanh Nghia',
-        'department' => 'Cardiology',
-        'date' => '21/9/25',
-        'time' => '10:00',
-        'status' => 'Done'
-    ],
-    [
-        'id' => '6',
-        'title' => 'General Checkup',
-        'doctor' => 'Dr. Trang Thanh Nghia',
-        'department' => 'Cardiology',
-        'date' => '1/9/25',
-        'time' => '10:00',
-        'status' => 'Done'
-    ]
+$statusClasses = [
+    'Scheduled' => 'text-orange-500',
+    'Completed' => 'text-green-600',
+    'Cancelled' => 'text-red-500',
 ];
 ?>
 
@@ -99,7 +61,13 @@ $appointments = [
 
     <!-- Appointments List -->
     <div class="space-y-5">
-        <?php foreach ($appointments as $appt): ?>
+        <?php foreach ($appointments as $appt): 
+            $appointmentDate = $appt['date'] ? (new DateTime($appt['date']))->format('d/m/Y') : '';
+            $appointmentTime = $appt['time'] ?? '';
+            $appointmentTitle = $appt['service'] ? htmlspecialchars($appt['service']) : 'Dental Appointment';
+            $status = $appt['status'] ?? 'Scheduled';
+            $statusClass = $statusClasses[$status] ?? 'text-gray-500';
+        ?>
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-6">
@@ -108,28 +76,33 @@ $appointments = [
                         </div>
                         <div>
                             <h3 class="text-xl font-semibold">
-                                <?= htmlspecialchars($appt['title']) ?>
-                                <span class="<?= $appt['status'] === 'Upcoming' ? 'text-orange-500' : 'text-green-600' ?> font-bold">
-                                    • <?= $appt['status'] ?>
+                                <?= $appointmentTitle ?>
+                                <span class="<?= $statusClass ?> font-bold">
+                                    • <?= htmlspecialchars($status) ?>
                                 </span>
                             </h3>
                             <p class="text-gray-600 mt-1">
-                                <?= htmlspecialchars($appt['doctor']) ?> - <?= htmlspecialchars($appt['department']) ?>
+                                <?= htmlspecialchars($appt['doctor'] ?? 'Assigned Doctor') ?>
+                                <?php if (!empty($appt['department'])): ?>
+                                    <span class="text-gray-400">• <?= htmlspecialchars($appt['department']) ?></span>
+                                <?php endif; ?>
                             </p>
                             <p class="text-sm text-gray-500 mt-1">
-                                <?= htmlspecialchars($appt['date']) ?> • <?= htmlspecialchars($appt['time']) ?>
+                                <?= htmlspecialchars($appointmentDate) ?> • <?= htmlspecialchars($appointmentTime) ?>
                             </p>
                         </div>
                     </div>
 
                     <div class="flex items-center gap-3">
-                        <?php if ($appt['status'] === 'Upcoming'): ?>
+                        <?php if ($status === 'Scheduled'): ?>
                             <a href="<?= BASE_URL ?>/public/patient/book-appointment?reschedule=<?= urlencode($appt['id']) ?>">
                                 <button class="px-6 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium">
                                     Reschedule
                                 </button>
                             </a>
-                            <button onclick="alert('Appointment <?= $appt['id'] ?> cancelled!')" 
+                            <button type="button"
+                                    data-action="cancel"
+                                    data-appointment-id="<?= htmlspecialchars($appt['id']) ?>"
                                     class="px-6 py-2.5 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition font-medium">
                                 Cancel
                             </button>
@@ -155,6 +128,55 @@ $appointments = [
         </div>
     <?php endif; ?>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-action="cancel"]').forEach(button => {
+        button.addEventListener('click', async () => {
+            const appointmentId = button.dataset.appointmentId;
+            if (!appointmentId) {
+                return;
+            }
+
+            if (!confirm('Are you sure you want to cancel this appointment?')) {
+                return;
+            }
+
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Cancelling...';
+
+            try {
+                const response = await fetch('<?= BASE_URL ?>/public/api/appointments/cancel', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ appointment_id: parseInt(appointmentId, 10) })
+                });
+
+                if (response.status === 401) {
+                    window.location.href = '<?= BASE_URL ?>/public/auth/login';
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Unable to cancel appointment.');
+                }
+
+                alert(data.message || 'Appointment cancelled successfully.');
+                window.location.reload();
+            } catch (error) {
+                alert(error.message || 'Unable to cancel appointment. Please try again.');
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+        });
+    });
+});
+</script>
 
 <?php
 $content = ob_get_clean();

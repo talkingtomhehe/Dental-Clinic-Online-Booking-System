@@ -1,6 +1,9 @@
 <?php
 // app/Views/patient/book_appointment.php
 require_once dirname(__DIR__, 3) . '/config/config.php';
+require_once dirname(__DIR__, 2) . '/Controllers/AuthenticationController.php';
+
+AuthenticationController::requireRole('Patient');
 ob_start();
 ?>
 <!DOCTYPE html>
@@ -32,11 +35,11 @@ ob_start();
 
         <!-- NÚT CONFIRM - LUÔN HIỂN THỊ, TỰ ĐỘNG DISABLE/ENABLE -->
         <div class="lg:min-w-[380px]">
-            <div @click.prevent="canBook && openConfirmModal()" 
-                :class="{ 'pointer-events-none': !canBook, 'cursor-not-allowed': !canBook }">
+            <div @click.prevent="canBook && !isSubmitting && openConfirmModal()" 
+                :class="{ 'pointer-events-none': !canBook || isSubmitting, 'cursor-not-allowed': !canBook || isSubmitting }">
                 <button 
-                    :disabled="!canBook"
-                    :class="canBook 
+                    :disabled="!canBook || isSubmitting"
+                    :class="canBook && !isSubmitting
                         ? 'bg-[#06b6d4] hover:bg-[#0891b2] shadow-xl transform hover:scale-105 cursor-pointer' 
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-md'"
                     class="w-full py-3 px-6 text-white font-bold text-2xl rounded-2xl transition-all duration-300 flex items-center justify-center gap-3">
@@ -45,7 +48,7 @@ ob_start();
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                             d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                    <span>Confirm Booking</span>
+                    <span x-text="isSubmitting ? 'Processing...' : 'Confirm Booking'"></span>
                 </button>
             </div>
         </div>
@@ -105,47 +108,67 @@ ob_start();
             </div>
 
 
-            <div x-show="selectedDate" class="space-y-4 flex-1 overflow-y-auto max-h-96">
-                <template x-for="slot in filteredSlots" :key="slot.time">
-                    <div class="p-5 border-2 rounded-xl transition-all hover:border-[#06b6d4] hover:shadow-md cursor-pointer relative"
-                        :class="slot.available ? 
-                                (selectedSlot?.time === slot.time ? 'border-[#06b6d4] bg-cyan-50' : 'border-gray-200') : 
-                                'border-gray-300 bg-gray-50 opacity-75 cursor-not-allowed'">
+            <div x-show="selectedDate" class="flex-1 flex flex-col">
+                <div x-show="slotsLoading" class="flex-1 flex items-center justify-center py-12 text-gray-500">
+                    <div class="flex flex-col items-center gap-3">
+                        <span class="h-10 w-10 border-4 border-gray-200 border-t-[#06b6d4] rounded-full animate-spin inline-block"></span>
+                        <span class="text-sm">Loading available slots...</span>
+                    </div>
+                </div>
 
-                        <div class="flex items-center justify-between">
-                            <div class="flex-1">
-                                <div class="flex items-center gap-4 mb-2">
-                                    <span class="text-2xl font-bold text-[#06b6d4]" x-text="slot.time"></span>
+                <div x-show="!slotsLoading && slotsError" class="flex-1 flex items-center justify-center">
+                    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm text-center max-w-md">
+                        <p x-text="slotsError"></p>
+                    </div>
+                </div>
 
-                                    <!-- Hiển thị trạng thái slot -->
-                                    <span class="px-3 py-1 rounded-full text-xs font-medium"
-                                        :class="slot.bookedSlots === 0 ? 'bg-green-100 text-green-700' :
-                                                slot.bookedSlots === 1 ? 'bg-yellow-100 text-yellow-700' :
-                                                'bg-red-100 text-red-700'">
-                                        <span x-text="slot.bookedSlots === 0 ? '2 Slots Available' :
-                                                    slot.bookedSlots === 1 ? '1 Slot Left' :
-                                                    'Fully Booked'"></span>
-                                    </span>
+                <div x-show="!slotsLoading && !slotsError && filteredSlots.length === 0" class="flex-1 flex items-center justify-center text-gray-500">
+                    <div class="text-center space-y-2">
+                        <i class="ti ti-calendar-x text-4xl text-gray-300"></i>
+                        <p>No available slots on this date. Please choose another day.</p>
+                    </div>
+                </div>
+
+                <div x-show="!slotsLoading && !slotsError && filteredSlots.length > 0" class="space-y-4 overflow-y-auto max-h-96">
+                    <template x-for="slot in filteredSlots" :key="slot.schedule_id">
+                        <div class="p-5 border-2 rounded-xl transition-all hover:border-[#06b6d4] hover:shadow-md cursor-pointer relative"
+                            :class="slot.available ? 
+                                    (selectedSlot?.schedule_id === slot.schedule_id ? 'border-[#06b6d4] bg-cyan-50' : 'border-gray-200') : 
+                                    'border-gray-300 bg-gray-50 opacity-75 cursor-not-allowed'">
+
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-4 mb-2">
+                                        <span class="text-2xl font-bold text-[#06b6d4]" x-text="slot.time"></span>
+
+                                        <span class="px-3 py-1 rounded-full text-xs font-medium"
+                                            :class="slot.availableSlots <= 0 ? 'bg-red-100 text-red-700' :
+                                                    (slot.availableSlots === 1 ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700')">
+                                            <span x-text="slot.availableSlots <= 0
+                                                ? 'Fully Booked'
+                                                : (slot.availableSlots === 1
+                                                    ? '1 Slot Left'
+                                                    : slot.availableSlots + ' Slots Available')"></span>
+                                        </span>
+                                    </div>
+                                    <div class="font-semibold text-gray-800" x-text="slot.doctor"></div>
+                                    <div class="text-sm text-gray-500" x-text="slot.room"></div>
                                 </div>
-                                <div class="font-semibold text-gray-800" x-text="slot.doctor"></div>
-                                <div class="text-sm text-gray-500" x-text="slot.room"></div>
+
+                                <i x-show="selectedSlot?.schedule_id === slot.schedule_id" 
+                                   class="ti ti-check text-2xl text-[#06b6d4]"></i>
                             </div>
 
-                            <!-- Icon check khi chọn -->
-                            <i x-show="selectedSlot?.time === slot.time" 
-                            class="ti ti-check text-2xl text-[#06b6d4]"></i>
+                            <div x-show="slot.available && selectedSlot?.schedule_id !== slot.schedule_id" 
+                                class="mt-4 text-right">
+                                <button type="button" @click="bookSlot(slot)" 
+                                        class="text-sm font-medium text-[#06b6d4] hover:text-[#0891b2]">
+                                    Select this time →
+                                </button>
+                            </div>
                         </div>
-
-                        <!-- Nút book (chỉ hiện khi còn slot) -->
-                        <div x-show="slot.available && selectedSlot?.time !== slot.time" 
-                            class="mt-4 text-right">
-                            <button @click="selectedSlot = slot" 
-                                    class="text-sm font-medium text-[#06b6d4] hover:text-[#0891b2]">
-                                Select this time →
-                            </button>
-                        </div>
-                    </div>
-                </template>
+                    </template>
+                </div>
             </div>
         </div>
     </div>
@@ -182,16 +205,18 @@ ob_start();
                     </div>
                 </div>
 
+                <div x-show="submitError" class="mt-4 text-sm text-red-600 text-center" x-text="submitError"></div>
+
                 <div class="flex gap-4 mt-8">
                     <button @click="showConfirmModal = false" 
                             class="flex-1 py-4 border-2 border-gray-300 rounded-xl font-semibold hover:bg-gray-50 transition">
                         Cancel
                     </button>
-                    <a href="<?= BASE_URL ?>/public/patient/booking-history" class="flex-1">
-                        <button class="w-full py-4 bg-[#06b6d4] hover:bg-[#0891b2] text-white rounded-xl font-bold shadow-lg transition transform hover:scale-105">
-                            Yes, Confirm Booking
-                        </button>
-                    </a>
+                    <button type="button"
+                            @click="submitSlot"
+                            :disabled="isSubmitting"
+                            class="flex-1 py-4 bg-[#06b6d4] hover:bg-[#0891b2] disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-lg transition transform hover:scale-105">
+                        <span x-text="isSubmitting ? 'Booking...' : 'Yes, Confirm Booking'"></span>
                 </div>
             </div>
         </div>
@@ -202,131 +227,169 @@ ob_start();
 <script>
 function bookingCalendar() {
     return {
-        currentDate: new Date(2025, 9, 1),
+        currentDate: new Date(),
         selectedDate: null,
         selectedDayObj: null,
         selectedSlot: null,
-        showConfirm: false,
-        selectedDepartment: 'Cardiology',
-
-
-        departments: ["Cardiology", "Orthopedics", "Dermatology", "Ophthalmology"],
-
-        timeSlots: [
-            {
-                time: "11:00",
-                doctor: "Dr. Trang Thanh Nghia",
-                department: "Cardiology",
-                room: "Room A1-102",
-                maxSlots: 2,
-                bookedSlots: 0   // 0 = còn 2 chỗ, 1 = còn 1 chỗ, 2 = hết chỗ
-            },
-            {
-                time: "12:00",
-                doctor: "Dr. Trang Thanh Nghia",
-                department: "Cardiology",
-                room: "Room A1-102",
-                maxSlots: 2,
-                bookedSlots: 1   // ví dụ đã có 1 người đặt
-            },
-            {
-                time: "14:00",
-                doctor: "Dr. Nguyen Duc Dung",
-                department: "Orthopedics",
-                room: "Room B1-102",
-                maxSlots: 2,
-                bookedSlots: 2   // đã full
-            },
-            {
-                time: "15:00",
-                doctor: "Dr. Trang Thanh Nghia",
-                department: "Cardiology",
-                room: "Room A1-102",
-                maxSlots: 2,
-                bookedSlots: 0
-            },
-        ],
+        timeSlots: [],
+        slotsLoading: false,
+        slotsError: '',
+        showConfirmModal: false,
+        isSubmitting: false,
+        submitError: '',
 
         init() {
-            this.generateCalendar()
+            this.generateCalendar();
         },
 
         get currentMonthName() {
-            return this.currentDate.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+            return this.currentDate.toLocaleString('en-US', { month: 'long', year: 'numeric' });
         },
 
         get calendarDays() {
-            const year = this.currentDate.getFullYear()
-            const month = this.currentDate.getMonth()
-            const firstDay = new Date(year, month, 1).getDay()
-            const daysInMonth = new Date(year, month + 1, 0).getDate()
-            const days = []
+            const year = this.currentDate.getFullYear();
+            const month = this.currentDate.getMonth();
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const today = new Date();
+            const days = [];
 
-            // Previous month
             for (let i = firstDay - 1; i >= 0; i--) {
-                const d = new Date(year, month - 1, new Date(year, month, 0).getDate() - i)
-                days.push({ day: d.getDate(), isCurrentMonth: false, date: d })
+                const d = new Date(year, month - 1, new Date(year, month, 0).getDate() - i);
+                days.push({ day: d.getDate(), isCurrentMonth: false, date: d });
             }
-            // Current month
+
             for (let i = 1; i <= daysInMonth; i++) {
-                const date = new Date(year, month, i)
+                const date = new Date(year, month, i);
                 days.push({
                     day: i,
                     isCurrentMonth: true,
-                    date: date,
-                    isToday: date.toDateString() === new Date().toDateString(),
+                    date,
+                    isToday: date.toDateString() === today.toDateString(),
                     isSelected: this.selectedDayObj && date.toDateString() === this.selectedDayObj.date.toDateString()
-                })
+                });
             }
-            // Next month
+
             while (days.length < 42) {
-                const next = new Date(year, month + 1, days.length - daysInMonth - firstDay + 1)
-                days.push({ day: next.getDate(), isCurrentMonth: false, date: next })
+                const next = new Date(year, month + 1, days.length - daysInMonth - firstDay + 1);
+                days.push({ day: next.getDate(), isCurrentMonth: false, date: next });
             }
-            return days
+
+            return days;
         },
 
         get filteredSlots() {
-            return this.timeSlots
-                .filter(s => s.department === this.selectedDepartment)
-                .map(slot => ({
-                    ...slot,
-                    available: slot.bookedSlots < slot.maxSlots
-                }))
+            return this.timeSlots;
         },
 
-        prevMonth() { this.currentDate = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() - 1); this.generateCalendar() },
-        nextMonth() { this.currentDate = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() + 1); this.generateCalendar() },
+        prevMonth() {
+            this.currentDate = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() - 1, 1);
+            this.generateCalendar();
+        },
+
+        nextMonth() {
+            this.currentDate = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() + 1, 1);
+            this.generateCalendar();
+        },
 
         generateCalendar() {
-            // Force re-render
-            this.$nextTick(() => {})
+            this.$nextTick(() => {});
+        },
+
+        async fetchSlotsForDate(dateObj) {
+            const formattedDate = dateObj.toLocaleDateString('en-CA');
+            this.slotsLoading = true;
+            this.slotsError = '';
+            this.timeSlots = [];
+
+            try {
+                const response = await fetch('<?= BASE_URL ?>/public/api/appointments/slots?date=' + encodeURIComponent(formattedDate));
+
+                if (response.status === 401) {
+                    window.location.href = '<?= BASE_URL ?>/public/auth/login';
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Unable to load available slots.');
+                }
+
+                this.timeSlots = Array.isArray(data.data) ? data.data : [];
+            } catch (error) {
+                console.error('Fetch slots error:', error);
+                this.slotsError = error.message || 'Unable to load available slots. Please try again later.';
+            } finally {
+                this.slotsLoading = false;
+            }
         },
 
         selectDate(day) {
-            if (!day.isCurrentMonth) return
-            this.selectedDayObj = day
-            this.selectedDate = day.day
+            if (!day.isCurrentMonth) return;
+
+            this.selectedDayObj = day;
+            this.selectedDate = day.day;
+            this.selectedSlot = null;
+            this.fetchSlotsForDate(day.date);
         },
 
         bookSlot(slot) {
-            if (!slot.available || !this.selectedDate) return
-            this.selectedSlot = slot
-            this.showConfirm = false
+            if (!slot.available) return;
+            this.selectedSlot = slot;
+        },
+
+        async submitSlot() {
+            if (!this.canBook || this.isSubmitting) return;
+
+            this.isSubmitting = true;
+            this.submitError = '';
+
+            try {
+                const response = await fetch('<?= BASE_URL ?>/public/api/appointments', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        schedule_id: this.selectedSlot.schedule_id,
+                    }),
+                });
+
+                if (response.status === 401) {
+                    window.location.href = '<?= BASE_URL ?>/public/auth/login';
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Unable to book appointment.');
+                }
+
+                this.showConfirmModal = false;
+                alert(data.message || 'Appointment booked successfully.');
+                window.location.href = '<?= BASE_URL ?>/public/patient/booking-history';
+            } catch (error) {
+                console.error('Book appointment error:', error);
+                this.submitError = error.message || 'Unable to book appointment. Please try again.';
+            } finally {
+                this.isSubmitting = false;
+            }
         },
 
         formatDate(date) {
-            return date ? date.toLocaleDateString('en-GB') : ''
+            return date ? date.toLocaleDateString('en-GB') : '';
         },
 
         get canBook() {
-            return this.selectedDate && this.selectedSlot && this.selectedSlot.bookedSlots < this.selectedSlot.maxSlots
+            return Boolean(this.selectedSlot && this.selectedSlot.available);
         },
 
-        showConfirmModal: false,
-
         openConfirmModal() {
-            this.showConfirmModal = true
+            if (!this.canBook) return;
+            this.submitError = '';
+            this.showConfirmModal = true;
         },
     }
 }
